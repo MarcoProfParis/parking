@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Load data from an external GeoJSON file</title>
+<meta name="viewport" content="initial-scale=0.5,maximum-scale=0.5,user-scalable=yes">
+<link href="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.css" rel="stylesheet">
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.js"></script>
+<style>
+body { 
+    margin: 0; 
+    padding: 0; 
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+#map { 
+    width: 100%; 
+    height: 50vh; /* Adjust height as needed */
+}
+#search-container {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1;
+    background: white;
+    padding: 10px;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    display: flex;
+    gap: 10px;
+}
+#search-input {
+    width: 300px;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+}
+#search-button {
+    padding: 5px 10px;
+    background: #007AFF;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+}
+#log-container {
+    width: 100%;
+    padding: 20px;
+    background: #f9f9f9;
+    border-top: 2px solid #007AFF;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    color: #333;
+    box-sizing: border-box; /* Ensures padding doesn't affect width */
+    overflow-y: auto;
+    height: 50vh; /* Makes the log container scrollable if content overflows */
+}
+ul#log {
+    list-style: none;
+    padding-left: 0;
+}
+</style>
+</head>
+<body>
+<div id="search-container">
+    <input id="search-input" type="text" placeholder="Enter an address" value="2-4 Av. du Portou, 64990 Saint-Pierre-d'Irube">
+    <button id="search-button">Search</button>
+</div>
+<div id="map"></div>
+<div id="log-container">
+    <h3>Log:</h3>
+    <ul id="log"></ul>
+</div>
+
+<script>
+    mapboxgl.accessToken = 'pk.eyJ1IjoiZG9taW5pcXVlbGluIiwiYSI6ImNtM2Q2d2p2czAwNjYybnF4cWlxdDMwcHkifQ.ycsvUXd89I8I5VnaNKx60w';
+    var geojson = {
+        type: 'FeatureCollection',
+        features: []
+    };
+    const map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/mapbox/satellite-v9',
+        zoom: 15,
+        center: [2.495817, 48.975333]
+    });
+
+    const searchInput = document.getElementById('search-input');
+    const searchButton = document.getElementById('search-button');
+    const selectedPolygons = []; // Array to store selected polygons
+    let total_mask_area = 0;
+    let total_rectangle_area = 0;
+    let total_area_without_red = 0;
+    let mask_without_red = 0;
+    let parking_area = 0;
+    let area = 0;
+
+    const logList = document.getElementById('log');
+    const addToLog = (message) => {
+        const li = document.createElement('li');
+        li.textContent = message;
+    // Append the new li element to the ul list
+        logList.appendChild(li);
+        };
+    const clearLog = () => {
+        while (logList.firstChild) {
+        logList.removeChild(logList.firstChild);
+        }
+    };
+    // Handle search button click
+    searchButton.addEventListener('click', () => {
+        const query = searchInput.value;
+        
+
+        if (!query) return alert('Please enter an address.');
+        
+        // Use Mapbox Geocoding API to get coordinates
+        fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${mapboxgl.accessToken}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.features && data.features.length > 0) {
+                    const location = data.features[0];
+                    const [lng, lat] = location.center;
+
+                    // Fly to the selected location
+                    map.flyTo({ center: [lng, lat], zoom: 16 });
+                    
+
+                    map.once('moveend', () => {
+                    // Confirm action after flying
+                    if (!confirm('Do you want to proceed with fetching parking data for this location?')) {
+                        return; // Exit if the user cancels
+                    }
+                    total_mask_area = 0;
+                    total_rectangle_area = 0;
+                    total_area_without_red = 0;
+                    mask_without_red = 0;
+                    parking_area = 0;
+                    area = 0;
+
+                    // Send coordinates to the server to get polygons
+                    fetch('https://8000-01jc3v7de9qpm2jwast0r3dbaj.cloudspaces.litng.ai/get_polygons', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ lng, lat })
+                    })
+                    .then(response => response.json())
+                    .then(console.log(data))
+                    .then(data => {
+                        // Load polygons as GeoJSON source
+                        geojson = data.geojson;
+                        if (!map.getSource('parking')) {
+                            map.addSource('parking', {
+                                type: 'geojson',
+                                data: geojson
+                            });
+
+                            map.addLayer({
+                                id: 'parking-layer',
+                                type: 'fill',
+                                source: 'parking',
+                                paint: {
+                                    'fill-color': ['get', 'color'],
+                                    'fill-opacity': 0.2,
+                                    'fill-outline-color': 'rgba(0, 0, 0, 1)',
+                                    'line-color': 'red',
+                                    'line-width': 3
+                                }
+                            });
+                        } else {
+                            map.getSource('parking').setData(geojson);
+                        }
+                    })
+                    .catch(error => console.error('Error fetching polygons:', error));
+                });
+            } else {
+                alert('Address not found. Please try again.');
+            }
+        })
+        .catch(error => console.error('Error with geocoding:', error));
+});
+// Add click event listener for polygons
+map.on('click', 'parking-layer', (e) => {
+    // Get the coordinates of the clicked polygon
+    let coordinates = e.features[0].geometry.coordinates;
+      
+    // Send the coordinates to the Python server to reserve them
+    fetch('https://8000-01jc3v7de9qpm2jwast0r3dbaj.cloudspaces.litng.ai/reserve_coordinates', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ coordinates: coordinates })
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Update or add the bbox layer
+        const bboxData = data.res.boxes;
+        const countourData = data.res.contours;
+
+        clearLog();
+        total_mask_area+= data.res.total_mask_area
+        total_rectangle_area+= data.res.total_rectangle_area
+        total_area_without_red+= data.res.total_area_without_red
+        mask_without_red+= data.res.mask_without_red
+        parking_area+= data.res.parking_area
+        area= data.res.box_area
+        const formatArea = (value) => {
+        return `${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m²`;   
+        };
+
+// In your click event handler
+        addToLog(`Total mask area: ${formatArea(total_mask_area)}`);
+        addToLog(`Total rectangle area: ${formatArea(total_rectangle_area)}`);
+        addToLog(`Total rectangle area without red rectangles: ${formatArea(total_area_without_red)}`);
+        addToLog(`Mask without red: ${formatArea(mask_without_red)}`);
+        addToLog(`Parking area: ${formatArea(parking_area)}`);
+        addToLog(`Box Area: ${formatArea(area)}`);  
+
+
+
+        if (!map.getSource('bbox')) {
+            map.addSource('bbox', {
+                type: 'geojson',
+                data: bboxData
+            });
+
+            map.addLayer({
+                id: 'bbox-layer',
+                type: 'line',
+                source: 'bbox',
+                paint: {
+                    'line-color': ['get', 'color'],
+                    'line-width': 1
+                }
+            });
+        } else {
+            map.getSource('bbox').setData(bboxData);
+        }
+        if (!map.getSource('contours')) {
+            map.addSource('contours', {
+                type: 'geojson',
+                data: countourData
+            });
+
+            map.addLayer({
+                id: 'contours-layer',
+                type: 'fill',
+                source: 'contours',
+                paint: {
+                            'fill-color': 'blue',
+                                    'fill-opacity': 0.4,
+                                    'fill-outline-color': 'rgba(0, 0, 0, 1)'
+                                }
+            });
+        } else {
+            map.getSource('contours').setData(countourData);
+        }
+    })
+    .catch(error => {
+        console.error('Error reserving coordinates:', error);
+    });
+});
+</script>
+
+</body>
+</html>
