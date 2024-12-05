@@ -153,6 +153,7 @@ ul#log {
                     .then(data => {
                         // Load polygons as GeoJSON source
                         geojson = data.geojson;
+                        console.log('geojson',JSON.stringify(geojson));
                         if (!map.getSource('parking')) {
                             map.addSource('parking', {
                                 type: 'geojson',
