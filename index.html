@@ -187,7 +187,7 @@ ul#log {
 // Add click event listener for polygons
 map.on('click', 'parking-layer', (e) => {
     // Get the coordinates of the clicked polygon
-    console.log('event: ', JSON.stringify(e);
+
     let coordinates = e.features[0].geometry.coordinates;
       
     // Send the coordinates to the Python server to reserve them
@@ -201,7 +201,7 @@ map.on('click', 'parking-layer', (e) => {
     .then(response => response.json())
     .then(data => {
         // Update or add the bbox layer
-        console.log('dataCoordinates: ',JSON.stringify(data));
+
         const bboxData = data.res.boxes;
         const countourData = data.res.contours;
 
