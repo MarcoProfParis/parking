@@ -1,6 +1,4 @@
-<!DOCTYPE html>
-<html>
-<head>
+<html><head>
 <meta charset="utf-8">
 <title>Load data from an external GeoJSON file</title>
 <meta name="viewport" content="initial-scale=0.5,maximum-scale=0.5,user-scalable=yes">
@@ -63,15 +61,15 @@ ul#log {
 }
 </style>
 </head>
-<body>
+<body cz-shortcut-listen="true">
 <div id="search-container">
     <input id="search-input" type="text" placeholder="Enter an address" value="2-4 Av. du Portou, 64990 Saint-Pierre-d'Irube">
     <button id="search-button">Search</button>
 </div>
-<div id="map"></div>
+<div id="map" class="mapboxgl-map"><div class="mapboxgl-canary" style="visibility: hidden;"></div><div class="mapboxgl-canvas-container mapboxgl-interactive mapboxgl-touch-drag-pan mapboxgl-touch-zoom-rotate"><canvas class="mapboxgl-canvas" tabindex="0" aria-label="Map" role="region" width="3544" height="998" style="width: 1772px; height: 499px;"></canvas></div><div class="mapboxgl-control-container"><div class="mapboxgl-ctrl-top-left"></div><div class="mapboxgl-ctrl-top"></div><div class="mapboxgl-ctrl-top-right"></div><div class="mapboxgl-ctrl-right"></div><div class="mapboxgl-ctrl-bottom-right"><div class="mapboxgl-ctrl mapboxgl-ctrl-attrib"><button class="mapboxgl-ctrl-attrib-button" type="button" aria-label="Toggle attribution"><span class="mapboxgl-ctrl-icon" aria-hidden="true" title="Toggle attribution"></span></button><div class="mapboxgl-ctrl-attrib-inner"><a href="https://www.mapbox.com/about/maps/" target="_blank" title="Mapbox" aria-label="Mapbox">© Mapbox</a> <a href="https://www.openstreetmap.org/about/" target="_blank" title="OpenStreetMap" aria-label="OpenStreetMap">© OpenStreetMap</a> <a class="mapbox-improve-map" href="https://apps.mapbox.com/feedback/?owner=mapbox&amp;id=satellite-v9&amp;access_token=pk.eyJ1IjoiZG9taW5pcXVlbGluIiwiYSI6ImNtM2Q2d2p2czAwNjYybnF4cWlxdDMwcHkifQ.ycsvUXd89I8I5VnaNKx60w#/-1.444459/43.480697/16.06" target="_blank" title="Improve this map" aria-label="Improve this map" rel="noopener nofollow">Improve this map</a> <a href="https://www.maxar.com/" target="_blank" title="Maxar" aria-label="Maxar">© Maxar</a></div></div></div><div class="mapboxgl-ctrl-bottom"></div><div class="mapboxgl-ctrl-bottom-left"><div class="mapboxgl-ctrl" style="display: block;"><a class="mapboxgl-ctrl-logo" target="_blank" rel="noopener nofollow" href="https://www.mapbox.com/" aria-label="Mapbox homepage"></a></div></div><div class="mapboxgl-ctrl-left"></div></div></div>
 <div id="log-container">
     <h3>Log:</h3>
-    <ul id="log"></ul>
+    <ul id="log"><li>Total mask area: 2,665.43 m²</li><li>Total rectangle area: 2,932.30 m²</li><li>Total rectangle area without red rectangles: 1,246.57 m²</li><li>Mask without red: 1,143.97 m²</li><li>Parking area: 5,336.64 m²</li><li>Box Area: 10,324.45 m²</li></ul>
 </div>
 
 <script>
@@ -153,7 +151,6 @@ ul#log {
                     .then(data => {
                         // Load polygons as GeoJSON source
                         geojson = data.geojson;
-                        console.log('geojson',JSON.stringify(geojson));
                         if (!map.getSource('parking')) {
                             map.addSource('parking', {
                                 type: 'geojson',
@@ -186,9 +183,8 @@ ul#log {
 });
 // Add click event listener for polygons
 map.on('click', 'parking-layer', (e) => {
-     console.log('event: ', JSON.stringify(e));
     // Get the coordinates of the clicked polygon
-
+    console.log('event: ',e);
     let coordinates = e.features[0].geometry.coordinates;
       
     // Send the coordinates to the Python server to reserve them
@@ -199,10 +195,9 @@ map.on('click', 'parking-layer', (e) => {
         },
         body: JSON.stringify({ coordinates: coordinates })
     })
-    .then(response => response.json())
+    .then(response => response.json()) 
     .then(data => {
         // Update or add the bbox layer
- console.log('event: ', JSON.stringify(data));
         const bboxData = data.res.boxes;
         const countourData = data.res.contours;
 
@@ -271,5 +266,6 @@ map.on('click', 'parking-layer', (e) => {
 });
 </script>
 
-</body>
-</html>
+
+
+</body></html>
