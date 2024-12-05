@@ -184,9 +184,10 @@ ul#log {
 // Add click event listener for polygons
 map.on('click', 'parking-layer', (e) => {
     // Get the coordinates of the clicked polygon
-    console.log('event: ',e);
+    
     let coordinates = e.features[0].geometry.coordinates;
-      
+    console.log('event OK');
+    console.log('coordinates',coordinates);
     // Send the coordinates to the Python server to reserve them
     fetch('https://8000-01jc3v7de9qpm2jwast0r3dbaj.cloudspaces.litng.ai/reserve_coordinates', {
         method: 'POST',
@@ -200,8 +201,8 @@ map.on('click', 'parking-layer', (e) => {
         // Update or add the bbox layer
         const bboxData = data.res.boxes;
         const countourData = data.res.contours;
-
-        clearLog();
+console.log('datacoordinates',data);
+        //clearLog();
         total_mask_area+= data.res.total_mask_area
         total_rectangle_area+= data.res.total_rectangle_area
         total_area_without_red+= data.res.total_area_without_red
