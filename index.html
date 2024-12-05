@@ -187,7 +187,7 @@ map.on('click', 'parking-layer', (e) => {
     
     let coordinates = e.features[0].geometry.coordinates;
     console.log('event OK');
-    console.log('coordinates',coordinates);
+    console.log('coordinates',JSON.stringify(coordinates));
     // Send the coordinates to the Python server to reserve them
     fetch('https://8000-01jc3v7de9qpm2jwast0r3dbaj.cloudspaces.litng.ai/reserve_coordinates', {
         method: 'POST',
@@ -201,8 +201,8 @@ map.on('click', 'parking-layer', (e) => {
         // Update or add the bbox layer
         const bboxData = data.res.boxes;
         const countourData = data.res.contours;
-console.log('datacoordinates',data);
-        //clearLog();
+console.log('datacoordinates',JSON.stringify(data));
+        clearLog();
         total_mask_area+= data.res.total_mask_area
         total_rectangle_area+= data.res.total_rectangle_area
         total_area_without_red+= data.res.total_area_without_red
@@ -210,7 +210,7 @@ console.log('datacoordinates',data);
         parking_area+= data.res.parking_area
         area= data.res.box_area
         const formatArea = (value) => {
-        return `${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m²`;   
+        return `Marco ${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m²`;   
         };
 
 // In your click event handler
